@@ -117,6 +117,24 @@
   .resource-link .r-text .r-url { font-size: .71rem; color: var(--teal); margin-top: 2px; }
   .resource-link .r-text .r-desc { font-size: .75rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
 
+  /* ── Cheat sheet downloads ── */
+  .cs-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .cs-item {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .cs-item-title { font-size: .85rem; font-weight: 700; color: var(--navy); }
+  .cs-item-desc  { font-size: .76rem; color: var(--muted); line-height: 1.5; flex: 1; }
+  .btn-dl {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .76rem; font-weight: 700; padding: 6px 12px; border-radius: 7px;
+    align-self: flex-start; border: 1px solid; transition: all .2s ease; text-decoration: none;
+  }
+  .btn-teal { background: var(--teal-lt); color: #0f766e; border-color: #99f6e4; }
+  .btn-teal:hover { background: #b2f5ea; }
+  .btn-gold { background: #FEF3C7; color: #b45309; border-color: #fcd34d; }
+  .btn-gold:hover { background: #fde68a; }
+
   /* ── Login gate ── */
   .login-overlay {
     position: fixed; inset: 0; z-index: 9999;
@@ -208,7 +226,6 @@
 <div class="header">
   <div class="header-left">
     <div class="header-logo">Kibo<span>AI</span> · Claude Certified</div>
-    <a href="index.html" class="header-back">← Home</a>
     <div>
       <div class="header-title">Practice Exam</div>
       <div class="header-sub">720+ to pass · No guessing penalty — always answer!</div>
@@ -221,6 +238,31 @@
 </div>
 
 <div class="main">
+  <!-- Cheat Sheets -->
+  <div class="resources-wrap" style="margin-bottom:16px">
+    <h3>📋 Cheat Sheets</h3>
+    <div class="cs-row">
+      <div class="cs-item">
+        <div style="font-size:1.1rem">📄</div>
+        <div class="cs-item-title">Foundations Cheat Sheet — Word</div>
+        <div class="cs-item-desc">8-page reference covering all 5 domains: decision tables, code examples, exam traps, and API quick reference.</div>
+        <a class="btn-dl btn-teal" href="Claude Certified Architect – Cheat Sheet.docx" download>⬇ Download .docx</a>
+      </div>
+      <div class="cs-item">
+        <div style="font-size:1.1rem">📕</div>
+        <div class="cs-item-title">Foundations Cheat Sheet — PDF</div>
+        <div class="cs-item-desc">Same 8-page reference in PDF format — ready to print or annotate on any device.</div>
+        <a class="btn-dl btn-teal" href="Claude Certified Architect – Cheat Sheet.pdf" download>⬇ Download .pdf</a>
+      </div>
+      <div class="cs-item">
+        <div style="font-size:1.1rem">🌐</div>
+        <div class="cs-item-title">Claude Guides — Quick Reference</div>
+        <div class="cs-item-desc">External quick-reference guides and condensed study material for Claude certifications.</div>
+        <a class="btn-dl btn-gold" href="https://claude-guides.com/" target="_blank">↗ Open site</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Resources -->
   <div class="resources-wrap">
     <h3>📚 External Study Resources</h3>
