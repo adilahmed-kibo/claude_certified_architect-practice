@@ -28,9 +28,12 @@ This project is set up for Vercel deployment with serverless question generation
 1. Push this repo to GitHub
 2. Connect to Vercel: [vercel.com/new](https://vercel.com/new)
 3. Select your GitHub repo — auto-detects settings
-4. Add environment variable:
+4. Add environment variables:
    - `DEEPSEEK_API_KEY` — your DeepSeek API key (get one at [platform.deepseek.com](https://platform.deepseek.com))
+   - `APP_PASSWORD` — shared password to protect the app (optional — omit for no auth)
 5. Deploy! Auto-deploys on every push to main
+
+> **Note:** Set `APP_PASSWORD` in Vercel project settings (Settings → Environment Variables). If unset, the app is open-access.
 
 ### Local Development
 

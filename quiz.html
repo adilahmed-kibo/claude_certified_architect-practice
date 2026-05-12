@@ -112,6 +112,18 @@
   .resource-link .r-text .r-url { font-size: .71rem; color: var(--teal); margin-top: 1px; }
   .resource-link .r-text .r-desc { font-size: .75rem; color: #64748B; margin-top: 4px; line-height: 1.4; }
 
+  /* ── Login gate ── */
+  .login-overlay { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+  .login-overlay.hidden { display: none; }
+  .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 40px 36px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,.1); }
+  .login-card h1 { font-size: 1.2rem; color: var(--navy); margin-bottom: 4px; }
+  .login-card p { font-size: .85rem; color: var(--muted); margin-bottom: 20px; }
+  .login-card input { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: .95rem; margin-bottom: 12px; outline: none; transition: border-color .13s; box-sizing: border-box; }
+  .login-card input:focus { border-color: var(--blue); }
+  .login-card .btn { width: 100%; }
+  .login-error { font-size: .82rem; color: var(--red); margin-top: 8px; display: none; }
+  .login-error.show { display: block; }
+
   /* ── Mode select ── */
   .mode-wrap { background: var(--card); border-radius: 14px; padding: 28px 32px; box-shadow: 0 2px 12px rgba(0,0,0,.07); margin-bottom: 20px; border: 1px solid var(--border); }
   .mode-wrap h2 { color: var(--navy); margin-bottom: 16px; font-size: 1.1rem; }
@@ -160,6 +172,18 @@
 </style>
 </head>
 <body>
+
+<!-- Login gate -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <h1>🔐 Claude Certified Architect</h1>
+    <p>Enter the password to access the practice exam</p>
+    <input type="password" id="password-input" placeholder="Enter password" autocomplete="off"
+      onkeydown="if(event.key==='Enter')submitPassword()">
+    <button class="btn btn-primary" onclick="submitPassword()">Unlock</button>
+    <div class="login-error" id="login-error">Incorrect password</div>
+  </div>
+</div>
 
 <div class="header">
   <div class="header-left">
@@ -324,6 +348,87 @@
 </div>
 
 <script>
+// ── Authentication ──
+async function checkAuth() {
+  const token = sessionStorage.getItem('auth_token');
+  const overlay = document.getElementById('login-overlay');
+  const errEl = document.getElementById('login-error');
+
+  // First check if auth is even configured
+  try {
+    const probe = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: '' })
+    });
+    if (probe.ok) {
+      // Auth disabled (no APP_PASSWORD) or empty password works — skip gate
+      overlay.classList.add('hidden');
+      return true;
+    }
+  } catch {}
+
+  if (token) {
+    try {
+      const resp = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: atob(token) })
+      });
+      if (resp.ok) {
+        overlay.classList.add('hidden');
+        return true;
+      }
+    } catch {}
+    // Token invalid — clear it
+    sessionStorage.removeItem('auth_token');
+  }
+
+  overlay.classList.remove('hidden');
+  return false;
+}
+
+async function submitPassword() {
+  const pw = document.getElementById('password-input').value;
+  const errEl = document.getElementById('login-error');
+  if (!pw) return;
+
+  try {
+    const resp = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.ok) {
+      sessionStorage.setItem('auth_token', btoa(pw));
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('password-input').value = '';
+      if (errEl) errEl.classList.remove('show');
+    } else {
+      if (errEl) errEl.classList.add('show');
+      document.getElementById('password-input').value = '';
+    }
+  } catch {
+    if (errEl) {
+      errEl.textContent = 'Server unavailable — try again later';
+      errEl.classList.add('show');
+    }
+  }
+}
+
+function getAuthToken() {
+  return sessionStorage.getItem('auth_token');
+}
+
+function authHeaders() {
+  const token = getAuthToken();
+  return token ? { 'Content-Type': 'application/json', 'x-auth-token': token } : { 'Content-Type': 'application/json' };
+}
+
+// Run auth check on page load
+checkAuth();
+
 const ORIGINAL_QUESTIONS = [
   // ════ DOMAIN 1: Agent Architecture & Orchestration ════
   {
@@ -1041,7 +1146,7 @@ async function fetchNextChunk(batchNum, totalBatches) {
   try {
     const response = await fetch(GEN_API_PATH, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         domain: selectedDomain,
         count,

@@ -265,9 +265,30 @@ function checkRateLimit(ip) {
   return true;
 }
 
-// ── Handler ────────────────────────────────────────────────────────────────────
-export default async function handler(req, res) {
-  // CORS headers
+// ── Auth check ────────────────────────────────────────────────────────────────
+function requireAuth(req) {
+  const appPassword = process.env.APP_PASSWORD;
+  if (!appPassword) return null; // No password configured = open access
+
+  const token = req.headers['x-auth-token'];
+  if (!token) return 'Authentication required. Set APP_PASSWORD env var and provide x-auth-token header.';
+
+  let decoded;
+  try {
+    decoded = Buffer.from(token, 'base64').toString('utf-8');
+  } catch {
+    return 'Invalid auth token';
+  }
+
+  if (decoded !== appPassword) {
+    return 'Invalid authentication';
+  }
+
+  return null; // Auth OK
+}
+
+// ── CORS helper ──────────────────────────────────────────────────────────────
+function setCorsHeaders(req, res) {
   const origin = req.headers.origin || '';
   const allowedOrigins = [
     'https://claude-certified-architect-practice.vercel.app',
@@ -276,16 +297,27 @@ export default async function handler(req, res) {
     'https://eduard-gyarmati-kibo.github.io'
   ];
 
-  // Allow only specific Vercel preview deployments for this project
   const isAllowed = allowedOrigins.some(a => origin.startsWith(a))
     || /^https:\/\/claude-certified-architect-practice-[a-z0-9-]+\.vercel\.app$/.test(origin);
 
   res.setHeader('Access-Control-Allow-Origin', isAllowed ? origin : '');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-auth-token');
+}
+
+// ── Handler ────────────────────────────────────────────────────────────────────
+export default async function handler(req, res) {
+  // CORS headers must be set BEFORE any early return for browser compatibility
+  setCorsHeaders(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Auth check
+  const authError = requireAuth(req);
+  if (authError) {
+    return res.status(401).json({ error: authError });
   }
 
   if (req.method !== 'POST') {
