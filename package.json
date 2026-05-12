@@ -1,0 +1,7 @@
+{
+  "name": "claude-certified-architect-practice",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Certified Architect — Foundations Exam Prep with AI question generation"
+}

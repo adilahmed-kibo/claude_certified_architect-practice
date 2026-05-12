@@ -126,6 +126,37 @@
 
   .hidden { display: none; }
   .q-counter { font-size: .88rem; color: #555; font-weight: 600; }
+
+  /* ── Question source toggle ── */
+  .source-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .source-opt { border: 2px solid var(--border); border-radius: 9px; padding: 11px 16px; cursor: pointer; transition: all .13s; flex: 1; text-align: center; }
+  .source-opt:hover { border-color: var(--blue); }
+  .source-opt.selected { border-color: var(--teal); background: var(--teal-lt); }
+  .source-opt .so-title { font-size: .88rem; font-weight: 700; color: var(--navy); }
+  .source-opt .so-desc { font-size: .75rem; color: var(--muted); }
+
+  /* ── Generating overlay ── */
+  .gen-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    background: rgba(13,33,55,.85);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .gen-overlay.hidden { display: none; }
+  .gen-spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,.2); border-top-color: #5BC8F5; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .gen-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+  .gen-sub { font-size: .88rem; opacity: .7; margin-bottom: 4px; }
+  .gen-progress { font-size: .82rem; opacity: .5; }
+  .gen-error { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.4); border-radius: 10px; padding: 16px 22px; margin-top: 16px; max-width: 400px; text-align: center; }
+  .gen-error p { font-size: .85rem; margin-bottom: 10px; }
+  .btn-retry { background: #fff; color: var(--navy); border: none; border-radius: 8px; padding: 8px 18px; font-weight: 700; font-size: .85rem; cursor: pointer; }
+  .btn-retry:hover { background: #e2e8f0; }
+
+  /* ── Loading indicator in quiz ── */
+  .loading-more { text-align: center; padding: 10px; font-size: .82rem; color: var(--muted); }
+  .loading-more .dots::after { content: ''; animation: dots 1.5s steps(4,end) infinite; }
+  @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } 100% { content: ''; } }
 </style>
 </head>
 <body>
@@ -243,8 +274,34 @@
           <option value="all">All questions</option>
         </select>
       </div>
-      <button class="btn btn-primary" onclick="startQuiz()">Start Quiz →</button>
+      <div class="section-title" style="margin-top:20px;font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#64748B;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">Question Source</div>
+      <div class="source-row">
+        <div class="source-opt selected" data-source="original" onclick="selectSource(this,'original')">
+          <div class="so-title">📚 Original Pool</div>
+          <div class="so-desc">~40 hand-crafted exam questions</div>
+        </div>
+        <div class="source-opt" data-source="generated" onclick="selectSource(this,'generated')">
+          <div class="so-title">🤖 Generate New</div>
+          <div class="so-desc">AI-generated via DeepSeek v4 Flash</div>
+        </div>
+      </div>
+      <div id="gen-actions" class="hidden" style="margin-top:12px">
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px">Questions are generated in batches of 5. We'll start your quiz as soon as the first batch arrives, and load more as you go.</p>
+        <button class="btn btn-success" onclick="startGenerate()">🚀 Generate Questions & Start Quiz</button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+        <button class="btn btn-primary" onclick="startQuiz()" id="btn-start-quiz">Start Quiz →</button>
+      </div>
     </div>
+  </div>
+
+  <!-- Generating overlay -->
+  <div id="gen-overlay" class="gen-overlay hidden">
+    <div class="gen-spinner"></div>
+    <div class="gen-title" id="gen-title">Generating your questions...</div>
+    <div class="gen-sub" id="gen-sub">This may take 30-60 seconds</div>
+    <div class="gen-progress" id="gen-progress">Batch 1 of <span id="gen-batches-total">?</span></div>
+    <div id="gen-error-area" class="hidden"></div>
   </div>
 
   <!-- Quiz screen -->
@@ -267,7 +324,7 @@
 </div>
 
 <script>
-const QUESTIONS = [
+const ORIGINAL_QUESTIONS = [
   // ════ DOMAIN 1: Agent Architecture & Orchestration ════
   {
     domain: 1, scenario: "Customer Support Agent",
@@ -872,10 +929,39 @@ const QUESTIONS = [
 let mode = 'exam', selectedDomain = 'all', qCount = 40;
 let questions = [], current = 0, answers = {}, showingExplanation = false;
 
+// ── Generation state ──
+let questionSource = 'original'; // 'original' | 'generated'
+let generatedQuestions = [];
+let targetCount = 5;
+let fetchedCount = 0;
+let isFetching = false;
+let generationSessionId = '';
+let abortController = null;
+
+const GEN_API_PATH = '/api/generate-questions';
+
 function selectMode(el, m) {
   document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   mode = m;
+}
+
+function selectSource(el, s) {
+  document.querySelectorAll('.source-opt').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  questionSource = s;
+
+  // Show/hide generation actions and start button
+  document.getElementById('gen-actions').classList.toggle('hidden', s !== 'generated');
+  document.getElementById('btn-start-quiz').style.display = s === 'original' ? 'inline-flex' : 'none';
+
+  // Update q-count options for generation
+  const qCount = document.getElementById('q-count');
+  if (s === 'generated') {
+    qCount.innerHTML = '<option value="5">5 questions (1 batch)</option><option value="10" selected>10 questions (2 batches)</option><option value="20">20 questions (4 batches)</option><option value="40">40 questions (8 batches)</option>';
+  } else {
+    qCount.innerHTML = '<option value="10">10 questions</option><option value="20">20 questions</option><option value="40" selected>40 questions</option><option value="all">All questions</option>';
+  }
 }
 
 function startQuiz() {
@@ -883,7 +969,7 @@ function startQuiz() {
   const qCountVal = document.getElementById('q-count').value;
   selectedDomain = domainFilter;
 
-  let pool = QUESTIONS;
+  let pool = ORIGINAL_QUESTIONS;
   if (domainFilter !== 'all') pool = pool.filter(q => q.domain === parseInt(domainFilter));
 
   // Shuffle
@@ -897,10 +983,196 @@ function startQuiz() {
   questions = pool;
   current = 0;
   answers = {};
+  questionSource = 'original';
 
   document.getElementById('setup-screen').classList.add('hidden');
   document.getElementById('quiz-screen').classList.remove('hidden');
   renderQuestion();
+}
+
+// ── Generation functions ──────────────────────────────────────────
+function startGenerate() {
+  questionSource = 'generated';
+  const domainFilter = document.getElementById('domain-filter').value;
+  const qCountVal = document.getElementById('q-count').value;
+  selectedDomain = domainFilter;
+  targetCount = parseInt(qCountVal);
+
+  // Reset generation state
+  generatedQuestions = [];
+  fetchedCount = 0;
+  isFetching = false;
+  abortController = null;
+  answers = {};
+  generationSessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  // Show overlay
+  const overlay = document.getElementById('gen-overlay');
+  overlay.classList.remove('hidden');
+  document.getElementById('gen-title').textContent = 'Generating your questions...';
+  document.getElementById('gen-sub').textContent = 'This may take 30-60 seconds';
+  document.getElementById('gen-error-area').classList.add('hidden');
+  document.getElementById('gen-error-area').innerHTML = '';
+
+  const totalBatches = Math.ceil(targetCount / 5);
+  document.getElementById('gen-batches-total').textContent = totalBatches;
+  updateGenProgress(1, totalBatches);
+
+  // Fetch first batch
+  current = 0;
+  fetchNextChunk(1, totalBatches);
+}
+
+function updateGenProgress(batch, total) {
+  document.getElementById('gen-progress').textContent = `Batch ${batch} of ${total}`;
+}
+
+async function fetchNextChunk(batchNum, totalBatches) {
+  if (isFetching) return;
+  if (fetchedCount >= targetCount) return;
+
+  isFetching = true;
+  const count = Math.min(5, targetCount - fetchedCount);
+
+  // Create abort controller for this fetch
+  abortController = new AbortController();
+  const sessionId = generationSessionId;
+
+  try {
+    const response = await fetch(GEN_API_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        domain: selectedDomain,
+        count,
+        questionsSoFar: generatedQuestions
+      }),
+      signal: abortController.signal
+    });
+
+    // Check if this response is stale (session was reset)
+    if (sessionId !== generationSessionId) {
+      isFetching = false;
+      return;
+    }
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Server error' }));
+      throw new Error(err.error || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Check for stale response again
+    if (sessionId !== generationSessionId) {
+      isFetching = false;
+      return;
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    // Deduplicate by question text
+    const existingTexts = new Set(generatedQuestions.map(q => q.question));
+    const newQuestions = (data.questions || []).filter(q => !existingTexts.has(q.question));
+
+    generatedQuestions = generatedQuestions.concat(newQuestions);
+    fetchedCount = generatedQuestions.length;
+
+    if (batchNum === 1 && fetchedCount > 0) {
+      // First batch ready — start the quiz
+      questions = [...generatedQuestions];
+      document.getElementById('setup-screen').classList.add('hidden');
+      document.getElementById('quiz-screen').classList.remove('hidden');
+      document.getElementById('gen-overlay').classList.add('hidden');
+      renderQuestion();
+    }
+
+    if (fetchedCount >= targetCount) {
+      // All done — update question pool
+      if (batchNum > 1 && document.getElementById('setup-screen').classList.contains('hidden')) {
+        questions = [...generatedQuestions];
+        renderQuestion();
+      }
+      document.getElementById('gen-overlay').classList.add('hidden');
+      isFetching = false;
+      return;
+    }
+
+    // More batches needed
+    isFetching = false;
+    updateGenProgress(batchNum + 1, totalBatches);
+
+    // Immediately fetch next batch (progressive loading continues in bg during quiz)
+    if (fetchedCount < targetCount) {
+      fetchNextChunk(batchNum + 1, totalBatches);
+    }
+
+  } catch (err) {
+    isFetching = false;
+
+    if (err.name === 'AbortError') return; // Intentional cancel
+
+    // Show error in overlay
+    const errArea = document.getElementById('gen-error-area');
+    errArea.classList.remove('hidden');
+    errArea.innerHTML = `
+      <div class="gen-error">
+        <p>⚠️ ${err.message || 'Failed to generate questions'}</p>
+        <button class="btn-retry" onclick="retryGeneration(${batchNum}, ${totalBatches})">Retry</button>
+        <button class="btn-retry" style="margin-left:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="cancelGeneration()">Cancel</button>
+      </div>
+    `;
+  }
+}
+
+function retryGeneration(batchNum, totalBatches) {
+  document.getElementById('gen-error-area').classList.add('hidden');
+  updateGenProgress(batchNum, totalBatches);
+  fetchNextChunk(batchNum, totalBatches);
+}
+
+function cancelGeneration() {
+  if (abortController) abortController.abort();
+  isFetching = false;
+  generationSessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  document.getElementById('gen-overlay').classList.add('hidden');
+
+  // If we have at least some questions, start quiz with what we have
+  if (fetchedCount > 0) {
+    questions = [...generatedQuestions];
+    document.getElementById('setup-screen').classList.add('hidden');
+    document.getElementById('quiz-screen').classList.remove('hidden');
+    renderQuestion();
+  }
+}
+
+function resetToOriginal() {
+  // Cancel any in-flight generation
+  if (abortController) abortController.abort();
+  isFetching = false;
+
+  questionSource = 'original';
+  generatedQuestions = [];
+  fetchedCount = 0;
+
+  // Reset UI
+  document.getElementById('results-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.add('hidden');
+  document.getElementById('gen-overlay').classList.add('hidden');
+  document.getElementById('setup-screen').classList.remove('hidden');
+
+  // Reset source selector
+  document.querySelectorAll('.source-opt').forEach(c => c.classList.remove('selected'));
+  document.querySelector('[data-source="original"]').classList.add('selected');
+  questionSource = 'original';
+  document.getElementById('gen-actions').classList.add('hidden');
+  document.getElementById('btn-start-quiz').style.display = 'inline-flex';
+
+  // Reset q-count options
+  const qCount = document.getElementById('q-count');
+  qCount.innerHTML = '<option value="10">10 questions</option><option value="20">20 questions</option><option value="40" selected>40 questions</option><option value="all">All questions</option>';
 }
 
 function renderQuestion() {
@@ -908,7 +1180,10 @@ function renderQuestion() {
   const total = questions.length;
   const answered = Object.keys(answers).length;
 
-  document.getElementById('q-progress-label').textContent = `Question ${current + 1} of ${total}`;
+  const showTotal = (questionSource === 'generated' && fetchedCount < targetCount)
+    ? fetchedCount + (isFetching ? '+' : '')
+    : total;
+  document.getElementById('q-progress-label').textContent = `Question ${current + 1} of ${showTotal}`;
   document.getElementById('q-counter-right').textContent = `${answered} answered`;
   document.getElementById('progress-fill').style.width = `${((current + 1) / total) * 100}%`;
 
@@ -953,20 +1228,50 @@ function renderQuestion() {
     </div>
   `;
 
+  // Progressive loading: trigger next batch if 2 or fewer remain
+  checkProgressiveLoad();
+
   // Nav buttons
   document.getElementById('btn-prev').style.display = current > 0 ? 'inline-flex' : 'none';
   const isLast = current === questions.length - 1;
   const allAnswered = Object.keys(answers).length === questions.length;
+  const allFetched = questionSource !== 'generated' || fetchedCount >= targetCount;
 
-  if (isLast || allAnswered) {
+  if ((isLast || allAnswered) && allFetched) {
     document.getElementById('btn-next').classList.add('hidden');
     document.getElementById('btn-finish').classList.remove('hidden');
+  } else if (allAnswered && !allFetched) {
+    // All current questions answered but more loading — show loading indicator on next
+    document.getElementById('btn-next').classList.remove('hidden');
+    document.getElementById('btn-next').textContent = isFetching ? 'Loading more...' : 'Loading more →';
+    document.getElementById('btn-next').disabled = true;
+    document.getElementById('btn-finish').classList.add('hidden');
+    document.getElementById('btn-next').style.opacity = '0.6';
   } else {
     document.getElementById('btn-next').classList.remove('hidden');
+    document.getElementById('btn-next').textContent = 'Next →';
+    document.getElementById('btn-next').disabled = false;
+    document.getElementById('btn-next').style.opacity = '1';
     document.getElementById('btn-finish').classList.add('hidden');
   }
 
   updateHeaderScore();
+}
+
+function checkProgressiveLoad() {
+  if (questionSource !== 'generated') return;
+  if (fetchedCount >= targetCount) return;
+  if (isFetching) return;
+
+  const remaining = fetchedCount - current;
+  if (remaining <= 2) {
+    // Need more questions — fetch next batch
+    const totalBatches = Math.ceil(targetCount / 5);
+    const currentBatch = Math.ceil(fetchedCount / 5) + 1;
+    if (currentBatch <= totalBatches) {
+      fetchNextChunk(currentBatch, totalBatches);
+    }
+  }
 }
 
 function selectAnswer(i) {
@@ -1000,12 +1305,10 @@ function selectAnswer(i) {
 }
 
 function updateHeaderScore() {
-  const answered = Object.values(answers);
-  if (answered.length === 0) { document.getElementById('hdr-score').textContent = '—'; return; }
-  const correct = answered.filter((a, i) => questions[Object.keys(answers)[i]] && a === questions[Object.keys(answers)[i]].correct).length;
-  // simpler:
+  const answeredCount = Object.keys(answers).length;
+  if (answeredCount === 0) { document.getElementById('hdr-score').textContent = '—'; return; }
   const correctCount = Object.keys(answers).filter(idx => answers[idx] === questions[idx].correct).length;
-  const pct = Math.round((correctCount / questions.length) * 100);
+  const pct = Math.round((correctCount / answeredCount) * 100);
   document.getElementById('hdr-score').textContent = pct + '%';
 }
 
@@ -1013,4 +1316,78 @@ function nextQ() {
   if (current < questions.length - 1) { current++; renderQuestion(); }
 }
 
-fun
+function prevQ() {
+  if (current > 0) { current--; renderQuestion(); }
+}
+
+function showResults() {
+  document.getElementById('quiz-screen').classList.add('hidden');
+  const rs = document.getElementById('results-screen');
+  rs.classList.remove('hidden');
+  const total = questions.length;
+  const correctCount = Object.keys(answers).filter(i => answers[i] === questions[i].correct).length;
+  const pct = Math.round((correctCount / total) * 100);
+  const scaled = Math.round(100 + (pct / 100) * 900);
+  const passed = scaled >= 720;
+  const dLabels = {1:'Agent Architecture (27%)',2:'Tool Design & MCP (18%)',3:'Claude Code (20%)',4:'Prompt Engineering (20%)',5:'Context & Reliability (15%)'};
+  const ds = {};
+  questions.forEach((q,i) => {
+    if (!ds[q.domain]) ds[q.domain] = {total:0, correct:0};
+    ds[q.domain].total++;
+    if (answers[i] === q.correct) ds[q.domain].correct++;
+  });
+  const dbCards = Object.keys(ds).sort().map(d => {
+    const s = ds[d], dp = Math.round((s.correct/s.total)*100);
+    const col = dp >= 80 ? '#166534' : dp >= 60 ? '#92400e' : '#991b1b';
+    return `<div class="domain-score-card">
+      <div class="d-name">${dLabels[d]}</div>
+      <div class="d-bar-wrap"><div class="d-bar" style="width:${dp}%;background:${col}"></div></div>
+      <div class="d-pct">${s.correct}/${s.total} correct (${dp}%)</div>
+    </div>`;
+  }).join('');
+  rs.innerHTML = `<div class="results">
+    <div class="big-score">${scaled}</div>
+    <div class="score-sub">${correctCount} / ${total} correct (${pct}%) · Passing score: 720</div>
+    <div class="pass-label ${passed?'pass':'fail'}">${passed ? '✅ PASS — Ready to sit the exam!' : '❌ Keep studying — you\'re getting there!'}</div>
+    <div class="domain-breakdown">${dbCards}</div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="reviewWrong()">Review Wrong Answers</button>
+      <button class="btn btn-secondary" onclick="restart()">New Quiz</button>
+      ${questionSource === 'generated' ? '<button class="btn btn-secondary" onclick="resetToOriginal()">Reset to Original</button>' : ''}
+    </div>
+  </div>`;
+}
+
+function reviewWrong() {
+  const wrong = Object.keys(answers).filter(i => answers[i] !== questions[i].correct);
+  if (!wrong.length) { alert('Perfect score! Nothing to review.'); return; }
+  questions = wrong.map(i => questions[i]);
+  current = 0; answers = {}; mode = 'practice';
+  document.getElementById('results-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.remove('hidden');
+  renderQuestion();
+}
+
+function restart() {
+  document.getElementById('results-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.add('hidden');
+  document.getElementById('setup-screen').classList.remove('hidden');
+  answers = {};
+  document.getElementById('hdr-score').textContent = '—';
+
+  // Reset to original questions by default on restart
+  // But preserve the source selection
+  if (questionSource === 'generated') {
+    // Re-select generated source
+    document.querySelectorAll('.source-opt').forEach(c => c.classList.remove('selected'));
+    document.querySelector('[data-source="generated"]').classList.add('selected');
+    document.getElementById('gen-actions').classList.remove('hidden');
+    document.getElementById('btn-start-quiz').style.display = 'none';
+  }
+}
+
+// Make sure the header score resets properly on page load
+document.getElementById('hdr-score').textContent = '—';
+</script>
+</body>
+</html>
