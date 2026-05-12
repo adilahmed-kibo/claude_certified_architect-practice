@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Certified Architect — Foundations Practice Exam</title>
+<style>
+  :root {
+    --navy: #0D2137; --blue: #1264A3; --teal: #0A9396; --teal-lt: #E0F4F4;
+    --green: #1a6b2f; --light-green: #d4f5dc;
+    --red: #8B1A1A; --light-red: #fde8e8;
+    --bg: #F4F6F9; --card: #FFFFFF; --border: #DDE3ED;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: #1A202C; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header { background: var(--navy); color: #fff; padding: 0 28px; height: 58px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,.3); position: sticky; top: 0; z-index: 100; }
+  .header-left { display: flex; align-items: center; gap: 18px; }
+  .header-logo { font-size: 1rem; font-weight: 800; color: #fff; }
+  .header-logo span { color: #5BC8F5; }
+  .header-back { font-size: .82rem; color: rgba(255,255,255,.65); font-weight: 600; padding: 5px 12px; border-radius: 6px; transition: all .15s; }
+  .header-back:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .header-title { font-size: .9rem; font-weight: 700; color: rgba(255,255,255,.85); }
+  .header-sub { font-size: .75rem; color: rgba(255,255,255,.5); margin-top: 1px; }
+  .score-badge { background: rgba(255,255,255,.12); border: 1.5px solid rgba(255,255,255,.25); border-radius: 10px; padding: 5px 16px; text-align: center; min-width: 100px; }
+  .score-badge .num { font-size: 1.4rem; font-weight: 800; }
+  .score-badge .lbl { font-size: .68rem; opacity: .75; }
+
+  /* ── Main ── */
+  .main { max-width: 820px; margin: 28px auto; padding: 0 20px 60px; }
+
+  /* ── Domain selector ── */
+  .domain-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .domain-btn { background: #fff; border: 2px solid var(--border); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: .82rem; font-weight: 600; color: #444; transition: all .15s; }
+  .domain-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .domain-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+
+  /* ── Progress bar ── */
+  .progress-wrap { background: #dde2ef; border-radius: 999px; height: 8px; margin-bottom: 18px; }
+  .progress-fill { height: 8px; border-radius: 999px; background: linear-gradient(90deg, #1F4E79, #2e86de); transition: width .3s; }
+  .progress-label { display: flex; justify-content: space-between; font-size: .78rem; color: #666; margin-bottom: 8px; }
+
+  /* ── Question card ── */
+  .q-card { background: #fff; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.08); padding: 28px 30px; margin-bottom: 20px; border-left: 5px solid var(--blue); }
+  .q-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .q-num { font-size: .78rem; font-weight: 700; color: #888; }
+  .domain-tag { font-size: .73rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .d1 { background: #E8F0FE; color: #1a5276; }
+  .d2 { background: #E8F7F0; color: #1a6b2f; }
+  .d3 { background: #FEF9E7; color: #7b5a00; }
+  .d4 { background: #FDEDEC; color: #8b1a1a; }
+  .d5 { background: #F4ECF7; color: #5b2c6f; }
+  .scenario-tag { font-size: .73rem; background: #f0f3f8; color: #444; padding: 3px 10px; border-radius: 999px; }
+
+  .q-scenario { background: #f8f9fd; border-left: 3px solid var(--border); padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 16px; font-size: .88rem; color: #444; line-height: 1.55; }
+  .q-scenario strong { color: #222; }
+  .q-text { font-size: 1rem; font-weight: 600; color: #1a1a2e; margin-bottom: 20px; line-height: 1.5; }
+
+  /* ── Options ── */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option { display: flex; align-items: flex-start; gap: 12px; border: 2px solid var(--border); border-radius: 9px; padding: 12px 14px; cursor: pointer; transition: all .15s; font-size: .9rem; line-height: 1.45; }
+  .option:hover:not(.disabled) { border-color: var(--blue); background: #f0f5ff; }
+  .option .letter { font-weight: 800; min-width: 22px; color: var(--blue); font-size: .95rem; }
+  .option.selected { border-color: var(--blue); background: #e8f0fe; }
+  .option.correct { border-color: var(--green); background: var(--light-green); }
+  .option.wrong { border-color: var(--red); background: var(--light-red); }
+  .option.missed { border-color: var(--green); background: #e6f7eb; border-style: dashed; }
+  .option.disabled { cursor: default; }
+
+  /* ── Explanation ── */
+  .explanation { display: none; margin-top: 18px; background: #f8f9fd; border-radius: 10px; padding: 16px 18px; font-size: .88rem; line-height: 1.6; }
+  .explanation.show { display: block; }
+  .explanation .why { font-weight: 700; color: var(--blue); margin-bottom: 6px; font-size: .9rem; }
+  .explanation .correct-lbl { font-weight: 700; color: var(--green); }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+  .btn { padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-size: .88rem; transition: all .15s; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: #163d61; }
+  .btn-secondary { background: #f0f3f8; color: #444; border: 2px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #145224; }
+
+  /* ── Results ── */
+  .results { background: #fff; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.08); padding: 32px 36px; text-align: center; }
+  .results .big-score { font-size: 4rem; font-weight: 900; color: var(--blue); }
+  .results .score-sub { font-size: 1.1rem; color: #666; margin-bottom: 24px; }
+  .results .pass-label { font-size: 1.4rem; font-weight: 800; margin-bottom: 20px; }
+  .results .pass { color: var(--green); }
+  .results .fail { color: var(--red); }
+  .domain-breakdown { margin: 20px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left; }
+  .domain-score-card { background: #f8f9fd; border-radius: 10px; padding: 14px 16px; }
+  .domain-score-card .d-name { font-weight: 700; font-size: .88rem; color: #333; margin-bottom: 6px; }
+  .domain-score-card .d-bar-wrap { background: #e0e4ef; border-radius: 999px; height: 7px; margin-bottom: 5px; }
+  .domain-score-card .d-bar { height: 7px; border-radius: 999px; background: var(--blue); }
+  .domain-score-card .d-pct { font-size: .78rem; color: #555; }
+
+  /* ── Resources ── */
+  .resources-wrap { background: var(--card); border-radius: 14px; padding: 22px 26px; box-shadow: 0 2px 12px rgba(0,0,0,.07); margin-bottom: 20px; border: 1px solid var(--border); }
+  .resources-wrap > h3 { font-size: .95rem; font-weight: 700; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .resources-subsection { margin-bottom: 14px; }
+  .resources-subsection:last-child { margin-bottom: 0; }
+  .resources-sublabel { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: #64748B; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+  .resource-links { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .resource-link { display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--border); border-radius: 9px; padding: 10px 13px; text-decoration: none; color: #1A202C; transition: all .15s; }
+  .resource-link:hover { border-color: var(--teal); background: var(--teal-lt); }
+  .resource-link .r-icon { font-size: 1.15rem; flex-shrink: 0; margin-top: 1px; }
+  .resource-link .r-text .r-title { font-weight: 700; font-size: .83rem; color: var(--navy); }
+  .resource-link .r-text .r-url { font-size: .71rem; color: var(--teal); margin-top: 1px; }
+  .resource-link .r-text .r-desc { font-size: .75rem; color: #64748B; margin-top: 4px; line-height: 1.4; }
+
+  /* ── Mode select ── */
+  .mode-wrap { background: var(--card); border-radius: 14px; padding: 28px 32px; box-shadow: 0 2px 12px rgba(0,0,0,.07); margin-bottom: 20px; border: 1px solid var(--border); }
+  .mode-wrap h2 { color: var(--navy); margin-bottom: 16px; font-size: 1.1rem; }
+  .mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .mode-card { border: 2px solid var(--border); border-radius: 10px; padding: 16px 18px; cursor: pointer; transition: all .15s; }
+  .mode-card:hover, .mode-card.selected { border-color: var(--blue); background: #f0f5ff; }
+  .mode-card h3 { font-size: .95rem; color: var(--blue); margin-bottom: 6px; }
+  .mode-card p { font-size: .82rem; color: #555; }
+  .settings-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .settings-row label { font-size: .85rem; font-weight: 600; color: #444; }
+  .settings-row select { border: 2px solid var(--border); border-radius: 7px; padding: 6px 10px; font-size: .85rem; }
+
+  .hidden { display: none; }
+  .q-counter { font-size: .88rem; color: #555; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">Kibo<span>AI</span> · Claude Certified</div>
+    <a href="index.html" class="header-back">← Home</a>
+    <div>
+      <div class="header-title">Practice Exam</div>
+      <div class="header-sub">720+ to pass · No guessing penalty — always answer!</div>
+    </div>
+  </div>
+  <div class="score-badge">
+    <div class="num" id="hdr-score">—</div>
+    <div class="lbl">Score</div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Resources -->
+  <div class="resources-wrap">
+    <h3>📚 External Study Resources</h3>
+
+    <div class="resources-subsection">
+      <div class="resources-sublabel">🐙 GitHub Repositories</div>
+      <div class="resource-links">
+        <a class="resource-link" href="https://github.com/Kibo-AI/claude-certified-architect" target="_blank">
+          <span class="r-icon">🐙</span>
+          <div class="r-text">
+            <div class="r-title">Kibo-AI — Claude Certified Architect</div>
+            <div class="r-url">github.com/Kibo-AI/claude-certified-architect</div>
+            <div class="r-desc">Forked from a public repo aggregating free study guides, courses, and community resources for the certification.</div>
+          </div>
+        </a>
+        <a class="resource-link" href="https://github.com/mrKindly/claude-certified-architect" target="_blank">
+          <span class="r-icon">🐙</span>
+          <div class="r-text">
+            <div class="r-title">mrKindly — Claude Certified Architect</div>
+            <div class="r-url">github.com/mrKindly/claude-certified-architect</div>
+            <div class="r-desc">Sample exam questions at near-real exam difficulty, with full solutions and detailed explanations for each answer.</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="resources-subsection">
+      <div class="resources-sublabel">🌐 Study Material & Mock Exams</div>
+      <div class="resource-links">
+        <a class="resource-link" href="https://claudecertified.io/knowledge" target="_blank">
+          <span class="r-icon">🌐</span>
+          <div class="r-text">
+            <div class="r-title">Claude Certified Knowledge Base</div>
+            <div class="r-url">claudecertified.io/knowledge</div>
+            <div class="r-desc">Study material and mock exams to help you prepare across all exam domains.</div>
+          </div>
+        </a>
+        <a class="resource-link" href="https://claudecertificationguide.com/learn" target="_blank">
+          <span class="r-icon">📖</span>
+          <div class="r-text">
+            <div class="r-title">Certification Guide — Learn</div>
+            <div class="r-url">claudecertificationguide.com/learn</div>
+            <div class="r-desc">Structured learning content and mock exams covering the full certification syllabus.</div>
+          </div>
+        </a>
+        <a class="resource-link" href="https://claudecertprep.com/overview" target="_blank">
+          <span class="r-icon">🎯</span>
+          <div class="r-text">
+            <div class="r-title">Cert Prep Overview</div>
+            <div class="r-url">claudecertprep.com/overview</div>
+            <div class="r-desc">Exam preparation material and practice tests to build confidence before the real exam.</div>
+          </div>
+        </a>
+        <a class="resource-link" href="https://claudecertifications.com/claude-certified-architect/study-guide" target="_blank">
+          <span class="r-icon">📝</span>
+          <div class="r-text">
+            <div class="r-title">Official Architect Study Guide</div>
+            <div class="r-url">claudecertifications.com/…/study-guide</div>
+            <div class="r-desc">Official study guide and mock exam content for the Claude Certified Architect — Foundations certification.</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup screen -->
+  <div id="setup-screen">
+    <div class="mode-wrap">
+      <h2>Configure Your Practice Session</h2>
+      <div class="mode-cards">
+        <div class="mode-card selected" data-mode="exam" onclick="selectMode(this,'exam')">
+          <h3>🎯 Exam Mode</h3>
+          <p>Answer all questions, then review. Simulates real exam conditions.</p>
+        </div>
+        <div class="mode-card" data-mode="practice" onclick="selectMode(this,'practice')">
+          <h3>📚 Practice Mode</h3>
+          <p>See explanation immediately after each answer.</p>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label>Domain:</label>
+        <select id="domain-filter">
+          <option value="all">All Domains</option>
+          <option value="1">Domain 1 — Agent Architecture (27%)</option>
+          <option value="2">Domain 2 — Tool Design & MCP (18%)</option>
+          <option value="3">Domain 3 — Claude Code (20%)</option>
+          <option value="4">Domain 4 — Prompt Engineering (20%)</option>
+          <option value="5">Domain 5 — Context & Reliability (15%)</option>
+        </select>
+        <label>Questions:</label>
+        <select id="q-count">
+          <option value="10">10 questions</option>
+          <option value="20">20 questions</option>
+          <option value="40" selected>40 questions</option>
+          <option value="all">All questions</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="startQuiz()">Start Quiz →</button>
+    </div>
+  </div>
+
+  <!-- Quiz screen -->
+  <div id="quiz-screen" class="hidden">
+    <div class="progress-label">
+      <span id="q-progress-label">Question 1 of 40</span>
+      <span id="q-counter-right"></span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div id="q-container"></div>
+    <div class="btn-row" id="nav-btns">
+      <button class="btn btn-secondary" id="btn-prev" onclick="prevQ()" style="display:none">← Previous</button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextQ()">Next →</button>
+      <button class="btn btn-success hidden" id="btn-finish" onclick="showResults()">Finish & See Results</button>
+    </div>
+  </div>
+
+  <!-- Results screen -->
+  <div id="results-screen" class="hidden"></div>
+</div>
+
+<script>
+const QUESTIONS = [
+  // ════ DOMAIN 1: Agent Architecture & Orchestration ════
+  {
+    domain: 1, scenario: "Customer Support Agent",
+    situation: "Your agent loop runs, but it sometimes stops before the task is complete — specifically when Claude returns a response with both text content AND a tool call.",
+    question: "What is the ONLY reliable signal to stop an agentic loop?",
+    options: [
+      'stop_reason === "end_turn"',
+      'The assistant message contains explanatory text',
+      'A maximum iteration counter (e.g., max_iterations = 5) is reached',
+      'Parsing assistant text for phrases like "Task completed"'
+    ],
+    correct: 0,
+    explanation: 'stop_reason is Claude\'s explicit structured signal. "end_turn" = done. "tool_use" = keep going. Text content, iteration counts, and parsed phrases are all unreliable and are classic anti-patterns.'
+  },
+  {
+    domain: 1, scenario: "Multi-agent Research System",
+    situation: "A coordinator agent decomposes the topic 'AI impact on creative industries' into subtasks: 'AI in digital art,' 'AI in graphic design,' and 'AI in photography.' Subagents complete their work correctly, but the final report covers only visual art.",
+    question: "What is the most likely root cause?",
+    options: [
+      "The synthesis agent lacks instructions to detect coverage gaps",
+      "The document analysis agent filters out non-visual sources",
+      "The coordinator's task decomposition is too narrow, missing music, literature, and film",
+      "The web-search agent's queries are insufficient"
+    ],
+    correct: 2,
+    explanation: "The subagents executed their assignments correctly. The issue is what they were assigned. The coordinator decomposed a broad topic only into visual-art subtasks — this is entirely the coordinator's fault. Always check task decomposition when coverage is wrong despite subagents working correctly."
+  },
+  {
+    domain: 1, scenario: "Multi-agent Research System",
+    situation: "You need subagents to run in parallel to reduce latency. The coordinator currently issues one Task call per response.",
+    question: "How do you spawn multiple subagents in parallel?",
+    options: [
+      "Call fork_session multiple times before issuing Task calls",
+      "Issue multiple Task calls in a SINGLE coordinator response",
+      "Set parallel: true in AgentDefinition",
+      "Use --parallel flag in the CLI"
+    ],
+    correct: 1,
+    explanation: "Multiple Task calls in ONE coordinator response run in parallel. The coordinator's turn ends when it returns; all spawned subagents then execute concurrently. fork_session is for branching session context, not parallel subagent execution."
+  },
+  {
+    domain: 1, scenario: "Customer Support Agent",
+    situation: "The agent must verify a customer's identity via get_customer before it can call process_refund. Production logs show get_customer is skipped 12% of the time, leading to incorrect refunds.",
+    question: "What is the most effective fix?",
+    options: [
+      "Add few-shot examples showing get_customer called first",
+      "Strengthen the system prompt to say verification is mandatory",
+      "Add a programmatic precondition that blocks process_refund until get_customer returns a verified ID",
+      "Implement a routing classifier to detect refund requests"
+    ],
+    correct: 2,
+    explanation: "Programmatic preconditions provide a 100% deterministic guarantee. Prompts (A, B) are probabilistic and will still fail ~10%+ of the time. A routing classifier (D) doesn't enforce tool ordering. When financial consequences are at stake, always use code-level enforcement."
+  },
+  {
+    domain: 1, scenario: "Multi-agent Research System",
+    situation: "A colleague proposes that the document analysis agent should send its results directly to the synthesis agent, bypassing the coordinator, to reduce latency.",
+    question: "What is the main advantage of keeping the coordinator as the central hub?",
+    options: [
+      "The coordinator can observe all interactions, handle errors uniformly, and control what each subagent receives",
+      "The coordinator batches requests to subagents, reducing total API calls",
+      "Routing through coordinator enables automatic retry logic",
+      "Subagents use isolated memory requiring complex serialization"
+    ],
+    correct: 0,
+    explanation: "Centralized visibility, uniform error handling, and fine-grained control over information flow are the core advantages of hub-and-spoke. Direct agent-to-agent communication loses all three. The other options are either false or not the primary reason."
+  },
+  {
+    domain: 1, scenario: "Multi-agent Research System",
+    situation: "After a subagent timeout, the synthesis agent needs to produce a report with partial data.",
+    question: "Which approach best enables graceful degradation?",
+    options: [
+      "Return an error to coordinator and halt synthesis until retry succeeds",
+      "Proceed synthesis using only successful sources without mentioning unavailability",
+      "Structure the synthesis output with coverage annotations showing which conclusions are well-supported and where gaps exist",
+      "Ask the coordinator to retry timed-out sources before starting synthesis"
+    ],
+    correct: 2,
+    explanation: "Coverage annotations implement graceful degradation with transparency — delivering value from completed work while clearly communicating uncertainty. Option B suppresses important information. A and D block progress unnecessarily."
+  },
+  {
+    domain: 1, scenario: "Multi-agent Research System",
+    situation: "The synthesis agent needs to verify simple facts (dates, names, statistics) while merging results, causing 2-3 extra coordinator round-trips per task (40% latency increase). 85% are simple checks; 15% need deep research.",
+    question: "How do you reduce overhead while maintaining reliability?",
+    options: [
+      "Give synthesis agent full access to all web-search tools",
+      "Accumulate all verification needs and batch them at the end to the coordinator",
+      "Have web-search agent proactively cache extra context during initial research",
+      "Give synthesis agent a limited verify_fact tool for simple checks; route complex verifications through coordinator"
+    ],
+    correct: 3,
+    explanation: "Least privilege principle: give the synthesis agent exactly what it needs for the 85% common case (simple fact checks) via a scoped tool, while preserving coordinator-mediated path for the 15% complex cases. Option A breaks separation of concerns. B introduces blocking dependencies. C is speculative."
+  },
+  {
+    domain: 1, scenario: "Code Generation",
+    situation: "You're resuming a --resume session from 3 days ago to continue investigating a bug. The codebase has had 47 commits since then.",
+    question: "What is the best approach?",
+    options: [
+      "Resume the session — it will detect file changes automatically",
+      "Start a new session with a structured summary of prior findings, since tool results are stale",
+      "Use fork_session to create a branch from the saved state",
+      "Run /compact first, then resume"
+    ],
+    correct: 1,
+    explanation: "When significant time has passed and files have changed, tool results in the old session are stale. Starting a new session with 'Here is a short summary of what we found...' is more reliable than resuming with outdated context. fork_session creates branches from a current session, not from a saved resume point."
+  },
+
+  // ════ DOMAIN 2: Tool Design & MCP ════
+  {
+    domain: 2, scenario: "Customer Support Agent",
+    situation: "The agent often calls get_customer for order-related questions. Both get_customer and lookup_order have minimal descriptions: 'Gets customer information' and 'Gets order details' respectively. They accept similar-looking identifier formats.",
+    question: "What is the FIRST step to improve tool selection reliability?",
+    options: [
+      "Implement a routing classifier before each turn",
+      "Combine both tools into a single lookup_entity",
+      "Add few-shot examples demonstrating correct tool selection",
+      "Expand each tool's description with input formats, example queries, edge cases, and boundaries"
+    ],
+    correct: 3,
+    explanation: "Tool descriptions are the PRIMARY selection mechanism. Minimal descriptions that don't distinguish similar tools are the root cause. This is the lowest-effort, highest-impact fix. Classifiers (A) and merging (B) are overengineering. Few-shot (C) adds tokens without fixing the root cause."
+  },
+  {
+    domain: 2, scenario: "Multi-agent Research System",
+    situation: "The document analysis agent has a tool analyze_document and the web-search agent has analyze_content. Both have nearly identical descriptions. Requests for uploaded files are routed to the wrong agent 45% of the time.",
+    question: "What is the most effective fix?",
+    options: [
+      "Add a pre-routing classifier to detect whether user refers to uploaded files or web content",
+      "Rename the web-search tool to extract_web_results and update its description to reference web search and URLs explicitly",
+      "Add few-shot examples to the coordinator prompt showing correct routing",
+      "Expand the document analysis tool description with usage examples, leaving the web-search tool unchanged"
+    ],
+    correct: 1,
+    explanation: "Renaming to extract_web_results and updating its description to explicitly reference web search and URLs removes the semantic overlap — the root cause. When two tools have overlapping names/descriptions, renaming is the correct fix. D is asymmetric and doesn't fully eliminate overlap."
+  },
+  {
+    domain: 2, scenario: "Customer Support Agent",
+    situation: "You need to guarantee that the agent always calls some tool (returning structured output) rather than answering in plain text.",
+    question: "Which tool_choice setting achieves this?",
+    options: [
+      '{"type": "auto"}',
+      '{"type": "any"}',
+      '{"type": "tool", "name": "get_customer"}',
+      '"none"'
+    ],
+    correct: 1,
+    explanation: '"any" forces the model to call some tool — guaranteeing structured output. "auto" lets the model choose text OR a tool. Forced selection (C) makes it call a SPECIFIC tool. "none" would prevent any tool calls.'
+  },
+  {
+    domain: 2, scenario: "Customer Support Agent",
+    situation: "Three MCP tools return dates in different formats: Unix timestamps, ISO 8601, and 'Mar 5, 2025'. The tools are third-party and cannot be modified.",
+    question: "Which approach to normalization is most maintainable?",
+    options: [
+      "Modify the tools you control to return normalized formats and create wrappers for third-party tools",
+      "Create a normalize_data tool that the agent calls after every data retrieval",
+      "Use a PostToolUse hook to intercept all tool outputs and apply formatting transformations",
+      "Add detailed format documentation to the system prompt"
+    ],
+    correct: 2,
+    explanation: "PostToolUse hooks provide a centralized, deterministic interception point that applies to ALL tools — including third-party ones you can't modify. Transformations live in code (not prompts) and apply uniformly. Option A requires modifying or wrapping each tool individually. B requires the model to call it. D is probabilistic."
+  },
+  {
+    domain: 2, scenario: "Multi-agent Research System",
+    situation: "The document analysis agent has a general-purpose fetch_url tool. Production shows it downloads search engine results pages to do ad-hoc web search — behavior that should go through the web-search agent.",
+    question: "Which fix is most effective?",
+    options: [
+      "Replace fetch_url with a load_document tool that validates URLs point to document formats",
+      "Route all URL fetching through the coordinator to the web-search agent",
+      "Filter fetch_url calls to known search engine domains",
+      "Add instructions that fetch_url should only be used for document URLs"
+    ],
+    correct: 0,
+    explanation: "Replacing a general-purpose tool with a document-specific constrained tool fixes the root cause at the interface level. This follows the principle of least privilege — making undesired behavior impossible rather than merely discouraged. Instructions (D) are probabilistic. Routing (B) adds latency. Filtering (C) is brittle."
+  },
+  {
+    domain: 2, scenario: "Multi-agent Research System",
+    situation: "The web-search agent queries three sources: academic databases return 15 papers, industry reports return '0 results,' patent databases return 'Connection timeout.' How should these be reported to the coordinator?",
+    question: "Which error-propagation approach enables the best recovery decisions?",
+    options: [
+      "Aggregate into a single success-percentage metric (67% source coverage)",
+      "Report both 'timeout' and '0 results' as failures requiring coordinator intervention",
+      "Retry transient failures internally; report only persistent errors",
+      "Distinguish access failures (timeout = retry decision) from valid empty results ('0 results' = successful query)"
+    ],
+    correct: 3,
+    explanation: "A timeout and '0 results' are semantically different: timeout means the query failed (coordinator should decide whether to retry), while '0 results' is a successful query with no matches (no retry needed). Conflating them (B) causes unnecessary retries on valid empty results."
+  },
+  {
+    domain: 2, scenario: "Multi-agent Research System",
+    situation: "You need to configure a GitHub MCP server for your team of 6 developers. Each developer has their own GitHub token. You want consistent tooling without committing credentials to VCS.",
+    question: "Which configuration approach is most effective?",
+    options: [
+      "Each developer adds the server in user scope via claude mcp add --scope user",
+      "Create a wrapper that reads tokens from .env and proxies GitHub API calls",
+      "Add the server to project .mcp.json using ${GITHUB_TOKEN} env var substitution, document in README",
+      "Configure in project scope with a placeholder token; developers override in local config"
+    ],
+    correct: 2,
+    explanation: "Project .mcp.json with environment variable substitution is idiomatic: single version-controlled source of truth + each developer supplies credentials via env vars. This is exactly what ${GITHUB_TOKEN} is designed for. Option A means the server config isn't shared. B is unnecessary complexity."
+  },
+
+  // ════ DOMAIN 3: Claude Code Configuration ════
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "Three senior developers always receive the instruction 'always include comprehensive error handling.' A fourth developer who just joined the team says Claude does not follow it. All four work in the same repo.",
+    question: "What is the most likely cause?",
+    options: [
+      "The instruction is in the original developers' user-level ~/.claude/CLAUDE.md, not in the project .claude/CLAUDE.md",
+      "The new developer's ~/.claude/CLAUDE.md has conflicting instructions",
+      "Claude Code learns per-user preferences over time",
+      "Claude Code caches CLAUDE.md after first read"
+    ],
+    correct: 0,
+    explanation: "Classic exam trap: user-level CLAUDE.md (~/.claude/CLAUDE.md) applies only to that user and is not shared via VCS. Project-level (.claude/CLAUDE.md) is shared with everyone. The fix: move the instruction to project-level so all current and future team members receive it."
+  },
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "Your CLAUDE.md has grown beyond 500 lines mixing TypeScript conventions, testing guidance, API patterns, and deployment procedures. You want conventions to be applied automatically by file type.",
+    question: "Which Claude Code feature best supports this?",
+    options: [
+      "Multiple CLAUDE.md files at different levels of the directory tree",
+      "Separate Markdown files in .claude/rules/ with YAML frontmatter and glob patterns",
+      "Skills in .claude/skills/ for each code type",
+      "Define a .claude/config.yaml mapping file patterns to CLAUDE.md sections"
+    ],
+    correct: 1,
+    explanation: ".claude/rules/ files with YAML frontmatter and paths: ['glob/**/*'] patterns enable automatic, path-based convention loading — rules only activate when editing matching files. This saves context, reduces noise, and handles cross-directory patterns like tests scattered across the codebase."
+  },
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "You need a custom /review command for standard code review available to the entire team when they clone the repo.",
+    question: "Where should you create the command file?",
+    options: [
+      "~/.claude/commands/ in each developer's home directory",
+      ".claude/commands/ in the project repository",
+      ".claude/config.json as an array of commands",
+      "Root CLAUDE.md under a Commands section"
+    ],
+    correct: 1,
+    explanation: ".claude/commands/ inside the project repository is version-controlled and automatically available to everyone who clones the repo. ~/.claude/commands/ is personal and not shared. config.json and CLAUDE.md are not where commands are defined."
+  },
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "After running the /analyze-codebase skill, Claude becomes less responsive and loses context of the original task. The skill produces large amounts of output from dependency scanning and metrics.",
+    question: "How do you fix this while keeping full analysis capabilities?",
+    options: [
+      "Add model: haiku in frontmatter to use a cheaper model",
+      "Split the skill into three smaller skills",
+      "Add context: fork in the skill frontmatter to run in an isolated subagent context",
+      "Add instructions to compress results into a short summary"
+    ],
+    correct: 2,
+    explanation: "context: fork runs the skill in an isolated subagent — the large output stays in that context, not the main session. This preserves full analysis while keeping the main session responsive. It's the purpose-built solution for this exact problem."
+  },
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "A developer wants to customize the team's /commit skill for their personal workflow (different commit message format, extra checks) without affecting teammates.",
+    question: "What do you recommend?",
+    options: [
+      "Create a personal version under ~/.claude/skills/ with a different name like /my-commit",
+      "Add conditional logic based on username in the project skill frontmatter",
+      "Create a personal version at ~/.claude/skills/commit/SKILL.md with the same name",
+      "Set override: true in the personal skill frontmatter"
+    ],
+    correct: 2,
+    explanation: "Personal skills take precedence over project skills with the same name. ~/.claude/skills/commit/SKILL.md overrides the team version locally while preserving the familiar /commit command name. Option A works but changes the command name, reducing the developer's muscle memory."
+  },
+  {
+    domain: 3, scenario: "CI/CD",
+    situation: "Your CI pipeline runs: claude 'Analyze this pull request for security issues' but the job hangs indefinitely. Logs show Claude Code is waiting for interactive input.",
+    question: "What is the correct fix?",
+    options: [
+      "Add --batch flag",
+      "Add the -p flag: claude -p 'Analyze this pull request...'",
+      "Redirect stdin from /dev/null",
+      "Set environment variable CLAUDE_HEADLESS=true"
+    ],
+    correct: 1,
+    explanation: "-p (or --print) is the documented way to run Claude Code non-interactively. It processes the prompt, prints to stdout, and exits. --batch and CLAUDE_HEADLESS don't exist. stdin redirection is a Unix workaround but not the documented approach."
+  },
+  {
+    domain: 3, scenario: "CI/CD",
+    situation: "Your team runs two Claude-based workflows: (1) a blocking pre-merge check that must complete before developers can merge; (2) a tech-debt report generated overnight. A manager proposes moving both to Message Batches API for 50% cost savings.",
+    question: "How should you evaluate this proposal?",
+    options: [
+      "Move both to batch processing to maximize savings",
+      "Use batch for tech-debt reports; keep synchronous calls for pre-merge checks",
+      "Keep synchronous for both to avoid ordering issues",
+      "Move both to batch with fallback to synchronous if batch takes too long"
+    ],
+    correct: 1,
+    explanation: "Message Batches API can take up to 24 hours with no latency SLA. For a blocking pre-merge check where developers wait, 24 hours is unacceptable. For overnight tech-debt reports, 24 hours is fine and 50% savings is significant. Always match API choice to latency requirements."
+  },
+  {
+    domain: 3, scenario: "CI/CD",
+    situation: "Your CI pipeline generates code suggestions and then a code review. The reviewer instance often misses non-obvious issues that the generator considered but dismissed.",
+    question: "Which approach directly addresses the root cause?",
+    options: [
+      "Enable extended thinking mode for the generation stage",
+      "Add explicit self-review instructions asking Claude to critique its own suggestions",
+      "Run a second independent Claude Code instance to review changes without the generator's context",
+      "Include full test files in prompt context so Claude better understands expected behavior"
+    ],
+    correct: 2,
+    explanation: "The root cause is confirmation bias: the same session retains its reasoning context and is less likely to challenge its own decisions. A second independent instance without generation context gives a fresh perspective — like human peer review. This directly fixes the root cause."
+  },
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "You're restructuring a monolithic application into microservices. This impacts dozens of files and requires decisions about service boundaries and module dependencies.",
+    question: "Which approach should you choose?",
+    options: [
+      "Direct execution with detailed upfront instructions",
+      "Direct execution, switching to planning when complexity arises",
+      "Planning mode to explore the codebase and design the approach before making changes",
+      "Direct execution making incremental changes, letting implementation reveal boundaries"
+    ],
+    correct: 2,
+    explanation: "Planning mode is designed for: large changes, multiple viable approaches, architectural decisions, and unfamiliar codebases. All four apply here. Options A, B, D risk expensive rework on a complex multi-file restructuring."
+  },
+
+  // ════ DOMAIN 4: Prompt Engineering ════
+  {
+    domain: 4, scenario: "CI/CD",
+    situation: "Automated reviews include phrases like 'complex ticket routing logic' or 'potential null pointer' without specifying what to change. Instructions like 'always include concrete fix suggestions' produce inconsistent output.",
+    question: "Which prompting technique most reliably produces consistently actionable feedback?",
+    options: [
+      "Refine instructions with more explicit requirements for each part of the format",
+      "Expand context window to include more surrounding codebase",
+      "Two-pass approach: one identifies issues, another generates fixes",
+      "Add 3–4 few-shot examples showing exact required format: issue, location, concrete fix"
+    ],
+    correct: 3,
+    explanation: "When instructions alone produce variable results, few-shot examples are the most effective technique. Providing 3–4 examples showing the exact structure (issue, location, concrete fix) gives the model a concrete pattern to match — more reliable than abstract instructions."
+  },
+  {
+    domain: 4, scenario: "CI/CD",
+    situation: "Automated review flags acceptable patterns (TODO markers, simple descriptions) while missing comments that describe behavior the code no longer implements. The current prompt says 'check that comments are accurate and up to date.'",
+    question: "What change addresses the root cause?",
+    options: [
+      "Include git blame data so Claude can identify outdated comments",
+      "Add few-shot examples of misleading comments",
+      "Filter TODO, FIXME, and descriptive comment patterns before analysis",
+      "Specify explicit criteria: flag comments ONLY when behavior they describe contradicts actual code"
+    ],
+    correct: 3,
+    explanation: "Explicit criteria replace a vague instruction with a precise definition of what constitutes a problem. This directly addresses the root cause: the model needs to know what 'problematic' specifically means. The other options treat symptoms without fixing the vague specification."
+  },
+  {
+    domain: 4, scenario: "Code Generation",
+    situation: "A function transforms API responses into a normalized format. After two iterations, fields are still nested differently and timestamps are formatted incorrectly. You described requirements in prose.",
+    question: "Which approach is most effective for the next iteration?",
+    options: [
+      "Write a JSON schema describing expected output structure",
+      "Provide 2–3 concrete input-output examples showing expected transformation",
+      "Rewrite requirements with more technical precision",
+      "Ask Claude to explain its current understanding"
+    ],
+    correct: 1,
+    explanation: "Concrete input-output examples remove ambiguity inherent in prose by showing the exact expected transformation. This directly addresses the root cause — misinterpretation — by providing unambiguous patterns for field nesting and timestamp formatting."
+  },
+  {
+    domain: 4, scenario: "CI/CD",
+    situation: "Automated test generation suggests 10 test cases, but 6 duplicate scenarios already covered by the existing test suite.",
+    question: "What change most effectively reduces duplicate suggestions?",
+    options: [
+      "Include the existing test file in context so Claude can see what's already covered",
+      "Reduce requested suggestions from 10 to 5",
+      "Add instructions to focus exclusively on edge cases",
+      "Post-process suggestions to filter by keyword overlap with existing test names"
+    ],
+    correct: 0,
+    explanation: "Claude can only avoid suggesting already-covered scenarios if it KNOWS what tests already exist. Including the existing test file fixes the root cause of duplication. The other options don't give Claude the information it needs and treat symptoms."
+  },
+  {
+    domain: 4, scenario: "CI/CD",
+    situation: "Security/correctness findings have 8% false positives; style/naming findings have 52% false positives. Developers start dismissing all findings without reading because 'half are wrong.'",
+    question: "Which approach best restores developer trust?",
+    options: [
+      "Keep all categories; display confidence scores with each finding",
+      "Keep all categories; add few-shot examples to improve accuracy over the next weeks",
+      "Temporarily disable high-false-positive categories; keep only high-precision categories while improving prompts",
+      "Apply uniform strictness reduction across all categories"
+    ],
+    correct: 2,
+    explanation: "Temporarily disabling high-false-positive categories immediately stops trust erosion by removing noisy findings. High-false-positive categories erode trust in accurate categories — keeping them (A, B) while fixing them slowly doesn't stop the immediate damage. D harms the good categories too."
+  },
+  {
+    domain: 4, scenario: "CI/CD",
+    situation: "After an initial review finds 12 issues, a developer pushes new commits to fix them. Re-running review produces 8 findings, but 5 duplicate previous comments on already-fixed code.",
+    question: "What is the most effective way to eliminate redundant feedback?",
+    options: [
+      "Run review only when PR is created and at final pre-merge state",
+      "Post-process to remove findings matching previous ones by file and description",
+      "Restrict review scope to files changed in the most recent push only",
+      "Include previous review findings in context; instruct Claude to report only new or still-unresolved issues"
+    ],
+    correct: 3,
+    explanation: "Including prior review findings lets Claude use its reasoning to distinguish addressed issues from new ones. This preserves thoroughness while eliminating redundant feedback. Option C misses regressions in older files. A and B are crude workarounds."
+  },
+  {
+    domain: 4, scenario: "CI/CD",
+    situation: "You need to automatically post each review finding as a separate inline PR comment with file path, line number, severity, and suggested fix — parsed from Claude's output.",
+    question: "Which approach is most effective?",
+    options: [
+      "Add an 'Output Format' section to CLAUDE.md with structured finding examples",
+      "Use --output-format json and --json-schema to enforce structured findings, then parse for GitHub API",
+      "Include explicit formatting instructions in the review prompt requiring a parseable template",
+      "Keep narrative format but add a summarization step to generate JSON"
+    ],
+    correct: 1,
+    explanation: "--output-format json with --json-schema enforces structured output at the CLI level, guaranteeing well-formed JSON that can be reliably parsed. It leverages built-in CLI capabilities designed for structured output. Options A and C rely on model compliance and produce variable results."
+  },
+
+  // ════ DOMAIN 5: Context Management & Reliability ════
+  {
+    domain: 5, scenario: "Customer Support Agent",
+    situation: "Customers reference specific amounts (e.g., 'the 15% discount I mentioned') but the agent responds with incorrect values. These details were mentioned 20+ turns ago and condensed to 'promotional pricing was discussed.'",
+    question: "What fix is most effective?",
+    options: [
+      "Increase the summarization threshold so conversations have more room before summarization triggers",
+      "Store full conversation history externally and retrieve when agent detects references",
+      "Extract transactional facts (amounts, dates, order numbers) into a persistent 'case facts' block included in every prompt",
+      "Revise the summarization prompt to explicitly preserve all numbers verbatim"
+    ],
+    correct: 2,
+    explanation: "Summarization inherently loses precise details — it's a fundamental limitation, not a tuning problem. Extracting critical facts to a structured block OUTSIDE the summarized history preserves them reliably in every prompt. This is the correct architectural pattern for high-stakes numeric data."
+  },
+  {
+    domain: 5, scenario: "Customer Support Agent",
+    situation: "The agent achieves 55% first-contact resolution (target: 80%). It escalates simple cases and tries to handle complex policy exceptions autonomously.",
+    question: "What is the most effective way to improve escalation calibration?",
+    options: [
+      "Require the agent to self-rate confidence 1–10 and auto-route below a threshold",
+      "Deploy a separate classifier model trained on historical tickets",
+      "Add explicit escalation criteria to the system prompt with few-shot examples",
+      "Implement sentiment analysis to detect customer frustration"
+    ],
+    correct: 2,
+    explanation: "Explicit criteria with few-shot examples directly fix the root cause: unclear decision boundaries. Self-rated confidence (A) is unreliable — the model can be confidently wrong. A classifier (B) is overengineering when the root cause is missing criteria. Sentiment analysis (D) solves a different problem — mood ≠ case complexity."
+  },
+  {
+    domain: 5, scenario: "Customer Support Agent",
+    situation: "Your get_customer tool returns all matches when searching by name. When there are multiple results, Claude picks the most recent order's customer, but this selects the wrong account 15% of the time.",
+    question: "How should you address this?",
+    options: [
+      "Confidence scoring that acts autonomously above 85% and requests clarification below",
+      "Instruct Claude to request an additional identifier (email, phone, or order number) when get_customer returns multiple matches",
+      "Modify get_customer to return only the single most-likely match",
+      "Add few-shot examples demonstrating correct reasoning for ambiguous matches"
+    ],
+    correct: 1,
+    explanation: "The user has definitive knowledge of their identity. One extra conversational turn to collect an additional identifier eliminates a 15% error rate. Option A is unreliable (the model can be confidently wrong). C hides the ambiguity in an opaque algorithm. D doesn't guarantee the model asks."
+  },
+  {
+    domain: 5, scenario: "Multi-agent Research System",
+    situation: "The synthesis agent receives ~75K tokens of aggregated results. It reliably cites information from the first 15K and last 10K tokens, but often misses critical findings in the middle 50K tokens.",
+    question: "How should you restructure the aggregated input?",
+    options: [
+      "Summarize all subagent outputs to under 20K tokens before aggregation",
+      "Stream subagent results incrementally, processing web-search first to completion",
+      "Place a key-findings summary at the start of the aggregated input with explicit section headings",
+      "Rotate which subagent's results appear first across tasks"
+    ],
+    correct: 2,
+    explanation: "Putting a key-findings summary at the START leverages the primacy effect — critical information is in the most reliably processed position. Explicit section headings help the model navigate and attend to mid-input content, directly mitigating the 'lost in the middle' phenomenon."
+  },
+  {
+    domain: 5, scenario: "Multi-agent Research System",
+    situation: "Two credible sources contain contradictory statistics: a government report states 40% growth, an industry analysis states 12%. Both sources look credible.",
+    question: "How should the document analysis agent handle this most effectively?",
+    options: [
+      "Apply credibility heuristics to pick the most likely correct number and add a footnote",
+      "Include both numbers without marking them as conflicting, letting the synthesis agent decide",
+      "Stop analysis and immediately escalate to the coordinator for a decision",
+      "Complete analysis with both numbers, explicitly annotate the conflict with source attribution, let coordinator reconcile"
+    ],
+    correct: 3,
+    explanation: "The analysis agent completes its work without blocking, preserves both values with attribution, and correctly passes reconciliation to the coordinator (which has broader context). Never arbitrarily pick one value when sources conflict — preserve both with full attribution."
+  },
+  {
+    domain: 5, scenario: "Conversational AI",
+    situation: "After a 40-minute cooking session, the conversation reaches 78,000 tokens including allergy information, recipe scaling, and general discussion. You must reduce tokens.",
+    question: "What approach best balances preservation with token reduction?",
+    options: [
+      "Summarize the entire conversation history",
+      "Keep only the most recent 20,000 tokens",
+      "Extract critical structured data (allergies, quantities, preferences), summarize general discussion, keep recent exchanges verbatim",
+      "Store full conversation externally and retrieve via semantic search"
+    ],
+    correct: 2,
+    explanation: "The hybrid approach preserves the highest-value information at lowest cost. Critical facts (allergies, quantities) are extracted to a compact block preventing precision loss from summarization. General discussion is summarized. Recent exchanges are verbatim for coherence. Options A and B risk losing critical dietary info."
+  },
+  {
+    domain: 5, scenario: "Conversational AI",
+    situation: "Users report that during extended conversations the assistant loses track of earlier topics. Your implementation keeps only the last 25 message pairs.",
+    question: "What is the most effective solution?",
+    options: [
+      "Hybrid approach: summarize older messages while keeping recent ones verbatim",
+      "Vector similarity search over full conversation history",
+      "Increase window to 50 message pairs",
+      "Summarize dropped messages every turn and prepend running summary"
+    ],
+    correct: 0,
+    explanation: "The hybrid approach retains exact recent context (critical for coherence) while compressing earlier conversation (preventing total loss). Simply increasing the window (C) delays the same problem. Full per-turn summarization (D) adds overhead and accumulates errors. Vector search (B) may miss non-similar but important context."
+  },
+  {
+    domain: 5, scenario: "Conversational AI",
+    situation: "Latency and costs increase when conversations exceed 50 turns.",
+    question: "What is the primary cause?",
+    options: [
+      "The entire conversation history is included with each API request",
+      "The model generates progressively longer responses",
+      "Database operations slow down as history grows",
+      "The model builds an internal user profile requiring more processing"
+    ],
+    correct: 0,
+    explanation: "Claude's API is fully stateless — every request must include the complete conversation history in the messages array. As conversations grow, each request carries more tokens, directly increasing latency and cost. The model maintains NO internal state between calls (D is false)."
+  },
+  {
+    domain: 5, scenario: "Conversational AI",
+    situation: "Your AI tutor has a 2,800-token system prompt defining teaching methodology. After 12 turns, the assistant starts ignoring proficiency levels.",
+    question: "What is the most effective fix?",
+    options: [
+      "Inject reminder messages every 4–5 turns",
+      "Replace verbose rules with few-shot examples demonstrating proficiency-level adaptation",
+      "Place critical rules at the end of the system prompt",
+      "Evaluate responses and regenerate if difficulty level mismatches"
+    ],
+    correct: 1,
+    explanation: "A 2,800-token prompt with abstract declarative rules is vulnerable to drift. Replacing verbose rules with concrete few-shot examples that demonstrate correct proficiency-level adaptation gives the model behavioral patterns to match — more reliably followed than abstract instructions across many turns."
+  },
+  {
+    domain: 5, scenario: "Customer Support Agent",
+    situation: "You are implementing the agent loop. After each Claude API call, you must decide whether to continue the loop or present the final answer.",
+    question: "What determines this decision?",
+    options: [
+      'Check stop_reason: continue if "tool_use", stop if "end_turn"',
+      'Parse text for phrases like "I\'m done" or "Can I help with anything else?"',
+      "Stop when max iterations (e.g., 10) is reached",
+      "Stop if the response contains explanatory text content"
+    ],
+    correct: 0,
+    explanation: 'stop_reason is Claude\'s explicit structured signal: "tool_use" = execute tool and loop back, "end_turn" = task complete, present to user. Parsing text, iteration limits, and checking for text content are all anti-patterns explicitly called out in the exam guide.'
+  },
+
+  // ════ Additional Domain 1 ════
+  {
+    domain: 1, scenario: "Customer Support Agent",
+    situation: "Your support agent averages 12+ tool calls for complex requests like 'I was billed twice, my discount didn't apply, and I want to cancel.' It handles each sub-issue sequentially and fetches redundant customer data multiple times.",
+    question: "What change most effectively improves handling of complex requests?",
+    options: [
+      "Add verification checkpoints requiring the agent to record progress after each issue",
+      "Combine get_customer, lookup_order, and billing tools into a single investigate_issue tool",
+      "Decompose the request into separate issues, investigate each in parallel with shared customer context, synthesize a final resolution",
+      "Add few-shot examples showing ideal tool-call sequences for multi-faceted billing scenarios"
+    ],
+    correct: 2,
+    explanation: "Parallel investigation with shared customer context eliminates two problems: redundant data retrieval (shared context means get_customer is called once) and sequential bottleneck (parallel investigation reduces total tool calls). This is the correct architectural pattern for multi-aspect requests."
+  },
+  {
+    domain: 1, scenario: "Customer Support Agent",
+    situation: "A customer's message says: 'I want to check my account for an order I made yesterday.' The agent calls get_customer first 78% of the time. But 'I want to check an order I made yesterday' (without 'account') routes to lookup_order 93% of the time. Tool descriptions are clear.",
+    question: "What is the most likely root cause?",
+    options: [
+      "The system prompt contains keyword-sensitive instructions that steer behavior based on the word 'account'",
+      "The model's base training creates associations between 'account' and customer operations",
+      "The model needs fine-tuning on multi-concept messages",
+      "Tool descriptions need negative examples specifying when NOT to use each tool"
+    ],
+    correct: 0,
+    explanation: "The systematic keyword-driven pattern (78% vs 93%) with clear tool descriptions strongly indicates the SYSTEM PROMPT contains routing logic that reacts to the word 'account.' Since descriptions are already clear, prompt-level instructions are creating unintended behavioral steering."
+  },
+
+  // ════ Additional Domain 3 ════
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "Your CLAUDE.md has grown to 400+ lines. You want coding standards and testing conventions always applied, but PR review, deployment, and migration guidance applied only when doing those tasks.",
+    question: "Which restructuring approach is most effective?",
+    options: [
+      "Move all guidance into separate Skills files, leaving only a brief project description in CLAUDE.md",
+      "Keep everything in CLAUDE.md using @import syntax to organize into separate files",
+      "Split into .claude/rules/ with path-bound glob patterns",
+      "Keep universal standards in CLAUDE.md; create Skills for workflow-specific guidance (PR review, deploy, migrations)"
+    ],
+    correct: 3,
+    explanation: "CLAUDE.md content loads in EVERY session (universal standards always apply). Skills are invoked ON DEMAND when trigger keywords are used — perfect for workflow-specific guidance. This matches the load-always vs on-demand distinction perfectly."
+  },
+  {
+    domain: 3, scenario: "Code Generation",
+    situation: "A /migration skill has three issues: (1) developers run it without arguments causing poorly named files, (2) it uses database schema details from unrelated prior conversations, (3) a developer accidentally ran destructive test cleanup due to broad tool access.",
+    question: "Which configuration fixes all three problems?",
+    options: [
+      "Use $1/$2 positional parameters, explicit @schema references, and a frontmatter warning about destructive operations",
+      "Add argument-hint in frontmatter, context: fork to isolate execution, restrict allowed-tools to file-write operations",
+      "Split into /migration-create and /migration-apply skills with different allowed-tools scopes",
+      "Add validation instructions in SKILL.md for $ARGUMENTS, prompts to ignore prior context, and prohibited operations"
+    ],
+    correct: 1,
+    explanation: "Three problems, three solutions: argument-hint fixes missing arguments, context: fork prevents context leakage from prior conversations, allowed-tools prevents destructive operations. Each skill frontmatter feature maps to exactly one problem."
+  },
+];
+
+// ── State ──
+let mode = 'exam', selectedDomain = 'all', qCount = 40;
+let questions = [], current = 0, answers = {}, showingExplanation = false;
+
+function selectMode(el, m) {
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  mode = m;
+}
+
+function startQuiz() {
+  const domainFilter = document.getElementById('domain-filter').value;
+  const qCountVal = document.getElementById('q-count').value;
+  selectedDomain = domainFilter;
+
+  let pool = QUESTIONS;
+  if (domainFilter !== 'all') pool = pool.filter(q => q.domain === parseInt(domainFilter));
+
+  // Shuffle
+  pool = pool.sort(() => Math.random() - 0.5);
+
+  if (qCountVal !== 'all') {
+    const n = parseInt(qCountVal);
+    pool = pool.slice(0, Math.min(n, pool.length));
+  }
+
+  questions = pool;
+  current = 0;
+  answers = {};
+
+  document.getElementById('setup-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.remove('hidden');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  const total = questions.length;
+  const answered = Object.keys(answers).length;
+
+  document.getElementById('q-progress-label').textContent = `Question ${current + 1} of ${total}`;
+  document.getElementById('q-counter-right').textContent = `${answered} answered`;
+  document.getElementById('progress-fill').style.width = `${((current + 1) / total) * 100}%`;
+
+  const domainLabels = { 1: 'Agent Architecture', 2: 'Tool Design & MCP', 3: 'Claude Code', 4: 'Prompt Engineering', 5: 'Context & Reliability' };
+  const domainColors = { 1: 'd1', 2: 'd2', 3: 'd3', 4: 'd4', 5: 'd5' };
+  const letters = ['A', 'B', 'C', 'D'];
+
+  const userAnswer = answers[current];
+  const revealed = mode === 'practice' && userAnswer !== undefined;
+
+  let optionsHtml = q.options.map((opt, i) => {
+    let cls = 'option';
+    if (userAnswer !== undefined) {
+      cls += ' disabled';
+      if (i === q.correct) cls += ' correct';
+      else if (i === userAnswer) cls += ' wrong';
+    } else if (userAnswer === undefined) {
+      cls += '';
+    }
+    return `<div class="${cls}" onclick="selectAnswer(${i})">
+      <span class="letter">${letters[i]}</span>
+      <span>${opt}</span>
+    </div>`;
+  }).join('');
+
+  const explHidden = (mode === 'exam' || userAnswer === undefined) ? '' : 'show';
+
+  document.getElementById('q-container').innerHTML = `
+    <div class="q-card">
+      <div class="q-meta">
+        <span class="q-num">Q${current + 1}</span>
+        <span class="domain-tag ${domainColors[q.domain]}">Domain ${q.domain}: ${domainLabels[q.domain]}</span>
+        <span class="scenario-tag">${q.scenario}</span>
+      </div>
+      <div class="q-scenario"><strong>Situation:</strong> ${q.situation}</div>
+      <div class="q-text">${q.question}</div>
+      <div class="options">${optionsHtml}</div>
+      <div class="explanation ${explHidden}">
+        <div class="why">💡 Explanation</div>
+        <div><span class="correct-lbl">Correct: ${letters[q.correct]} — ${q.options[q.correct]}</span><br><br>${q.explanation}</div>
+      </div>
+    </div>
+  `;
+
+  // Nav buttons
+  document.getElementById('btn-prev').style.display = current > 0 ? 'inline-flex' : 'none';
+  const isLast = current === questions.length - 1;
+  const allAnswered = Object.keys(answers).length === questions.length;
+
+  if (isLast || allAnswered) {
+    document.getElementById('btn-next').classList.add('hidden');
+    document.getElementById('btn-finish').classList.remove('hidden');
+  } else {
+    document.getElementById('btn-next').classList.remove('hidden');
+    document.getElementById('btn-finish').classList.add('hidden');
+  }
+
+  updateHeaderScore();
+}
+
+function selectAnswer(i) {
+  if (answers[current] !== undefined) return;
+  answers[current] = i;
+
+  const q = questions[current];
+  const isCorrect = i === q.correct;
+
+  const optEls = document.querySelectorAll('.option');
+  optEls.forEach((el, idx) => {
+    el.classList.add('disabled');
+    if (idx === q.correct) el.classList.add('correct');
+    else if (idx === i) el.classList.add('wrong');
+  });
+
+  if (mode === 'practice') {
+    document.querySelector('.explanation').classList.add('show');
+  }
+
+  updateHeaderScore();
+
+  const total = questions.length;
+  const answered = Object.keys(answers).length;
+  document.getElementById('q-counter-right').textContent = `${answered} answered`;
+
+  if (answered === total) {
+    document.getElementById('btn-next').classList.add('hidden');
+    document.getElementById('btn-finish').classList.remove('hidden');
+  }
+}
+
+function updateHeaderScore() {
+  const answered = Object.values(answers);
+  if (answered.length === 0) { document.getElementById('hdr-score').textContent = '—'; return; }
+  const correct = answered.filter((a, i) => questions[Object.keys(answers)[i]] && a === questions[Object.keys(answers)[i]].correct).length;
+  // simpler:
+  const correctCount = Object.keys(answers).filter(idx => answers[idx] === questions[idx].correct).length;
+  const pct = Math.round((correctCount / questions.length) * 100);
+  document.getElementById('hdr-score').textContent = pct + '%';
+}
+
+function nextQ() {
+  if (current < questions.length - 1) { current++; renderQuestion(); }
+}
+
+fun
