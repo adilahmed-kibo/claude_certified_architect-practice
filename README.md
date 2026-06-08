@@ -8,7 +8,7 @@ Internal study kit for Kibo AI team members preparing for the **Claude Certified
 |------|-------------|
 | `index.html` | Resource hub — cheat sheets, study links |
 | `quiz.html` | Practice exam with original questions + AI generation |
-| `api/generate-questions.js` | Vercel serverless function (DeepSeek v4 Flash proxy) |
+| `api/generate-questions.js` | Vercel serverless function (Gemini 3.1 Flash Lite proxy) |
 | `Claude Certified Architect – Cheat Sheet.docx` | 8-page reference covering all 5 domains (Word) |
 | `Claude Certified Architect – Cheat Sheet.pdf` | Same reference in PDF format |
 
@@ -21,7 +21,7 @@ Internal study kit for Kibo AI team members preparing for the **Claude Certified
 
 ## How to Deploy (Vercel)
 
-This project is set up for Vercel deployment with serverless question generation via DeepSeek v4 Flash.
+This project is set up for Vercel deployment with serverless question generation via Gemini 3.1 Flash Lite.
 
 ### One-click Deployment
 
@@ -29,7 +29,7 @@ This project is set up for Vercel deployment with serverless question generation
 2. Connect to Vercel: [vercel.com/new](https://vercel.com/new)
 3. Select your GitHub repo — auto-detects settings
 4. Add environment variables:
-   - `DEEPSEEK_API_KEY` — your DeepSeek API key (get one at [platform.deepseek.com](https://platform.deepseek.com))
+    - `GEMINI_API_KEY` — your Gemini API key (get one at [Google AI Studio](https://aistudio.google.com/apikey))
    - `APP_PASSWORD` — shared password to protect the app (optional — omit for no auth)
 5. Deploy! Auto-deploys on every push to main
 
@@ -45,12 +45,12 @@ npm i -g vercel
 vercel dev
 ```
 
-Then open `http://localhost:3000` — the generation endpoint will hit DeepSeek using your env vars.
+Then open `http://localhost:3000` — the generation endpoint will hit Gemini using your env vars.
 
 ## Features
 
 - **Original Questions**: ~40 hand-crafted exam questions across all 5 domains
-- **AI Generation**: Select "Generate New" on quiz.html, pick your count (5-40), questions are generated in batches of 5 via DeepSeek v4 Flash with thinking mode
+- **AI Generation**: Select "Generate New" on quiz.html, pick your count (5-40), questions are generated in batches of 5 via Gemini 3.1 Flash Lite
 - **Progressive Loading**: Questions appear as soon as the first 5 are ready — remaining batches load in the background
 - **Domain Filter**: Generate questions for a specific domain or all domains
 - **Reset to Original**: Always revert back to the built-in question pool

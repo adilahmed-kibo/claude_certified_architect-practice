@@ -1,23 +1,23 @@
-# Tasks — Vercel Deploy + DeepSeek Generation
+# Tasks — Vercel Deploy + Gemini Generation
 
 ## Architecture
 
 ```
 /
-├── api/generate-questions.js   ← Vercel serverless function → DeepSeek v4 Flash
+├── api/generate-questions.js   ← Vercel serverless function → Gemini 3.1 Flash Lite
 ├── vercel.json                 ← Vercel routing config
 ├── quiz.html                   ← Updated with generation UI & progressive loading
 ├── index.html                  ← Minor updates
 ├── .gitignore                  ← Add .vercel
-└── README.md                   ← Deployment instructions + DEEPSEEK_API_KEY setup
+└── README.md                   ← Deployment instructions + GEMINI_API_KEY setup
 ```
 
 ## Key Design Decisions (from planner critique)
 
 - **Abuse control**: Server enforces count ≤ 5 per request, validates domain (1-5 or "all"), same-origin check (CORS), no unauthenticated unlimited generation
 - **Timeout**: Vercel Hobby = 10s limit. Each API call generates max 5 questions (fits well within limit). `{ count }` in API = per-request count, not total. UI handles "Generate 20" as 4 sequential chunks of 5
-- **DeepSeek API**: `deepseek-v4-flash` with `thinking: {"type": "enabled"}`, `reasoning_effort: "high"`, `response_format: {"type": "json_object"}`. No streaming (non-stream for simplicity)
-- **Server-side validation**: Validate DeepSeek output schema before returning (required fields, options.length===4, correct in range, domain in range). If malformed, return structured error
+- **Gemini API**: `gemini-3.1-flash-lite` with `responseMimeType: "application/json"`, `maxOutputTokens: 4096`, `temperature: 0.7`. No streaming (non-stream for simplicity)
+- **Server-side validation**: Validate Gemini output schema before returning (required fields, options.length===4, correct in range, domain in range). If malformed, return structured error
 - **Prompting**: Explicit JSON-only instruction, no markdown, exact schema in system prompt with 2 few-shot examples per domain
 - **Few-shot access**: Hardcode 2-3 representative examples from existing pool directly in `api/generate-questions.js` (simplest approach, avoids sharing questions.js)
 - **Progressive loading race conditions**: Use generation session ID, `isFetching` guard, `AbortController`, deduplicate by question text hash, ignore stale responses on reset/restart
@@ -34,15 +34,16 @@ Create `api/generate-questions.js`:
   - Question format specification (JSON Schema)
   - 2-3 few-shot examples from existing pool (hardcoded)
   - Explicit instruction: JSON only, no markdown, no prose
-- Calls DeepSeek v4 Flash with thinking mode enabled:
-  ```json
+- Calls Gemini 3.1 Flash Lite via Google Gen AI SDK:
+  ```js
   {
-    "model": "deepseek-v4-flash",
-    "messages": [...],
-    "reasoning_effort": "high",
-    "thinking": {"type": "enabled"},
-    "response_format": {"type": "json_object"},
-    "max_tokens": 4096
+    model: 'gemini-3.1-flash-lite',
+    contents: prompt,
+    config: {
+      maxOutputTokens: 4096,
+      temperature: 0.7,
+      responseMimeType: 'application/json'
+    }
   }
   ```
 - Server-side response validation:
@@ -51,7 +52,7 @@ Create `api/generate-questions.js`:
   - Each question has: `domain`, `scenario`, `situation`, `question`, `options` (length 4), `correct` (0-3), `explanation`
   - If validation fails: retry once with stricter prompt, else return structured error
 - Returns `{ questions: [...], error?: string, sessionId: string }`
-- On DeepSeek timeout / HTTP error → return descriptive error, don't crash
+- On Gemini timeout / HTTP error → return descriptive error, don't crash
 
 File to create:
 - `api/generate-questions.js`
@@ -69,7 +70,7 @@ Create `vercel.json`:
 }
 ```
 - No special rewrites needed (Vercel serves static files + api/ functions by default)
-- Set Node.js runtime (not Edge) for DeepSeek HTTP calls
+- Set Node.js runtime (not Edge) for Gemini API calls
 - Update `.gitignore` to include `.vercel`
 
 Files to create/modify:
@@ -128,7 +129,7 @@ Files to modify:
 ## Task 5: Update README.md
 
 - Add deployment instructions for Vercel
-- Document `DEEPSEEK_API_KEY` environment variable setup
+- Document `GEMINI_API_KEY` environment variable setup
 - How to connect fork to Vercel (auto-deploy from GitHub)
 
 Files to modify:
@@ -146,4 +147,4 @@ Files to modify:
 - [ ] Server rejects count > 5, invalid domain, oversized requests
 - [ ] `vercel.json` routes requests correctly
 - [ ] Git push triggers Vercel auto-deploy
-- [ ] Missing `DEEPSEEK_API_KEY` returns safe error (not crash)
+- [ ] Missing `GEMINI_API_KEY` returns safe error (not crash)

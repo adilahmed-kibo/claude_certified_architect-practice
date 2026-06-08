@@ -1,7 +1,9 @@
-// Vercel serverless function — generates practice questions via DeepSeek v4 Flash
+// Vercel serverless function — generates practice questions via Gemini 3.1 Flash Lite
 // POST /api/generate-questions
 
-const DEEPSEEK_API_BASE = 'https://api.deepseek.com';
+import { GoogleGenAI } from '@google/genai';
+
+const MODEL = 'gemini-3.1-flash-lite';
 
 // ── Few-shot examples (representative questions from the existing pool) ──────────
 const FEW_SHOT_EXAMPLES = [
@@ -101,10 +103,7 @@ function buildPrompt(domain, count, questionsSoFar) {
     contextNote = `\nNOTE: You already generated ${questionsSoFar.length} questions earlier in this session. Do NOT repeat or closely paraphrase those. Here are their questions:\n${questionsSoFar.map(q => `- "${q.question}"`).join('\n')}\n`;
   }
 
-  return [
-    {
-      role: 'system',
-      content: `You are an expert exam question generator for the "Claude Certified Architect — Foundations" certification.
+  return `You are an expert exam question generator for the "Claude Certified Architect — Foundations" certification.
 
 ## Certification Domains
 ${domainList}
@@ -147,12 +146,10 @@ ${fewShotJson}
 - Return ONLY valid JSON. No markdown, no code fences, no extra text before or after.
 - The JSON must have a top-level "questions" array.
 - Exactly ${count} questions in the array.
-- Each question must have ALL fields: domain, scenario, situation, question, options (exactly 4), correct (0-3), explanation.`
-    }
-  ];
+- Each question must have ALL fields: domain, scenario, situation, question, options (exactly 4), correct (0-3), explanation.`;
 }
 
-// ── Validate DeepSeek response ────────────────────────────────────────────────
+// ── Validate Gemini response ──────────────────────────────────────────────────
 function validateQuestions(questions, expectedCount, requestedDomain) {
   if (!Array.isArray(questions) || questions.length !== expectedCount) {
     return { valid: false, error: `Expected ${expectedCount} questions, got ${questions?.length || 0}` };
@@ -192,64 +189,62 @@ function validateQuestions(questions, expectedCount, requestedDomain) {
   return { valid: errors.length === 0, error: errors.length > 0 ? errors.join('; ') : null };
 }
 
-// ── Call DeepSeek API ─────────────────────────────────────────────────────────
-async function callDeepSeek(messages, retries = 1) {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+// ── Call Gemini API ───────────────────────────────────────────────────────────
+async function callGemini(contents, retries = 1) {
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return { ok: false, error: 'DEEPSEEK_API_KEY is not configured on the server' };
+    return { ok: false, error: 'GEMINI_API_KEY is not configured on the server' };
   }
 
-  const response = await fetch(`${DEEPSEEK_API_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'deepseek-v4-flash',
-      messages,
-      reasoning_effort: 'high',
-      thinking: { type: 'enabled' },
-      response_format: { type: 'json_object' },
-      max_tokens: 4096,
-      temperature: 0.7
-    })
-  });
+  const ai = new GoogleGenAI({ apiKey });
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    return { ok: false, error: `DeepSeek API returned ${response.status}: ${body}` };
-  }
-
-  const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
-
-  if (!content) {
-    return { ok: false, error: 'DeepSeek returned empty response' };
-  }
-
-  // Try to parse JSON
-  let parsed;
   try {
-    parsed = JSON.parse(content);
-  } catch {
-    if (retries > 0) {
-      // Retry with stronger JSON instructions
-      messages.push({
-        role: 'assistant',
-        content
-      });
-      messages.push({
-        role: 'user',
-        content: 'Your response was not valid JSON. Return ONLY valid JSON matching the schema described earlier. No markdown, no code fences, no extra text.'
-      });
-      return callDeepSeek(messages, retries - 1);
-    }
-    return { ok: false, error: 'DeepSeek returned invalid JSON that could not be parsed' };
-  }
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents,
+      config: {
+        maxOutputTokens: 4096,
+        temperature: 0.7,
+        responseMimeType: 'application/json'
+      }
+    });
 
-  return { ok: true, parsed };
+    const text = response.text;
+
+    if (!text) {
+      return { ok: false, error: 'Gemini returned empty response' };
+    }
+
+    // Try to parse JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      if (retries > 0) {
+        // Build a conversation from the original contents for retry
+        let conversation;
+        if (typeof contents === 'string') {
+          conversation = [{ role: 'user', parts: [{ text: contents }] }];
+        } else {
+          conversation = contents;
+        }
+
+        conversation.push({ role: 'model', parts: [{ text }] });
+        conversation.push({
+          role: 'user',
+          parts: [{ text: 'Your response was not valid JSON. Return ONLY valid JSON matching the schema described earlier. No markdown, no code fences, no extra text.' }]
+        });
+
+        return callGemini(conversation, retries - 1);
+      }
+      return { ok: false, error: 'Gemini returned invalid JSON that could not be parsed' };
+    }
+
+    return { ok: true, parsed };
+  } catch (err) {
+    return { ok: false, error: `Gemini API error: ${err.message}` };
+  }
 }
 
 // ── Simple in-memory rate limiter ──────────────────────────────────────────────
@@ -340,10 +335,10 @@ export default async function handler(req, res) {
   const questionsSoFar = Array.isArray(req.body.questionsSoFar) ? req.body.questionsSoFar : [];
 
   // Build prompt
-  const messages = buildPrompt(domain, count, questionsSoFar);
+  const prompt = buildPrompt(domain, count, questionsSoFar);
 
-  // Call DeepSeek
-  const result = await callDeepSeek(messages);
+  // Call Gemini
+  const result = await callGemini(prompt);
 
   if (!result.ok) {
     return res.status(502).json({ error: result.error });
@@ -355,13 +350,13 @@ export default async function handler(req, res) {
 
   if (!validationResult.valid) {
     // One retry with explicit repair instruction
-    messages.push({
-      role: 'assistant',
-      content: JSON.stringify(result.parsed)
-    });
-    messages.push({
-      role: 'user',
-      content: `Your response failed validation: ${validationResult.error}. Please fix and return valid JSON matching this exact schema:
+    const repairConversation = [
+      { role: 'user', parts: [{ text: prompt }] },
+      { role: 'model', parts: [{ text: JSON.stringify(result.parsed) }] },
+      {
+        role: 'user',
+        parts: [{
+          text: `Your response failed validation: ${validationResult.error}. Please fix and return valid JSON matching this exact schema:
 
 {
   "questions": [
@@ -378,9 +373,11 @@ export default async function handler(req, res) {
 }
 
 Return exactly ${count} questions. ONLY JSON, no other text.`
-    });
+        }]
+      }
+    ];
 
-    const retryResult = await callDeepSeek(messages, 0);
+    const retryResult = await callGemini(repairConversation, 0);
     if (!retryResult.ok) {
       return res.status(502).json({ error: `Generated questions failed validation: ${validationResult.error}` });
     }

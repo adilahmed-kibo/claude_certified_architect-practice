@@ -2,7 +2,7 @@
 
 ## Goal
 
-Turn the Claude Certified Architect study kit (static HTML/JS) into a Vercel-hosted app with serverless question generation via DeepSeek v4 Flash API.
+Turn the Claude Certified Architect study kit (static HTML/JS) into a Vercel-hosted app with serverless question generation via Gemini 3.1 Flash Lite API.
 
 ## Users
 
@@ -15,7 +15,7 @@ Turn the Claude Certified Architect study kit (static HTML/JS) into a Vercel-hos
   - API key must stay server-side (Vercel environment variables)
   - Must work as static HTML/JS on Vercel with API functions
   - Existing questions (~40) must remain available as "original" pool
-  - DeepSeek v4 Flash uses thinking mode (high/xhigh/max)
+  - Gemini 3.1 Flash Lite via Google Gen AI SDK
 - Product constraints:
   - No auth/login required (public study tool)
   - Free-tier-friendly on Vercel
@@ -33,4 +33,4 @@ Turn the Claude Certified Architect study kit (static HTML/JS) into a Vercel-hos
 
 - Detected languages: HTML, JavaScript, CSS
 - Detected frameworks: none (static)
-- Detected tools: Vercel (target), DeepSeek API (target)
+- Detected tools: Vercel (target), Gemini API (target)

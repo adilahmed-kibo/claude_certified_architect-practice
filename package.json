@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Claude Certified Architect — Foundations Exam Prep with AI question generation"
+  "description": "Claude Certified Architect — Foundations Exam Prep with AI question generation",
+  "dependencies": {
+    "@google/genai": "^2.8.0"
+  }
 }
