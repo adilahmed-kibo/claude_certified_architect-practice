@@ -1,3 +1,2 @@
-.gedcode/
-.pi/
-.vercel/
+node_modules/ 
+.env 
